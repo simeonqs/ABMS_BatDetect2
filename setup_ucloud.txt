@@ -1,0 +1,50 @@
+# First set up the ssh-key for connection to ERDA
+
+## set-up key
+ssh-keygen 
+
+## copy public key (paste this to the set-up page on ERDA)
+cat .ssh/*pub 
+
+## add set-up to config file (update the user!)
+cat > ~/.ssh/config <<EOF
+Host io.erda.au.dk erda
+Hostname io.erda.au.dk
+VerifyHostKeyDNS ask
+User simeon_smeele@ecos.au.dk
+Port 2222
+IdentityFile ~/.ssh/id_ed25519
+EOF
+
+## make config readable
+chmod 600 ~/.ssh/config
+
+## connect manually once to accept fingerprint (check on set-up page!)
+sftp -B 258048 io.erda.au.dk
+
+# Then install packages
+
+sudo apt install pip
+sudo apt install daemonize
+
+pip install batdetect2 --break-system-packages
+pip install paramiko --break-system-packages
+
+## Make the directories for storage
+
+mkdir data
+mkdir results
+mkdir logs
+
+# Finally run this from the root directory to start the pipeline
+
+## you can start multiple processes by adding _2, _3, etc. to batdetect_batch
+
+CURRENT_DIR="$PWD"
+
+daemonize -c "$CURRENT_DIR" \
+  -p "$CURRENT_DIR/logs/batdetect_batch.pid" \
+  -l "$CURRENT_DIR/logs/batdetect_batch.lock" \
+  -o "$CURRENT_DIR/logs/batdetect_batch.out" \
+  -e "$CURRENT_DIR/logs/batdetect_batch.out" \
+  /usr/bin/python3 -u "$CURRENT_DIR/process_all.py"
